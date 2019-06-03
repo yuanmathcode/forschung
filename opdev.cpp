@@ -64,8 +64,8 @@ vector<device*> devices;*/
 
 /*device_map[i][j]=1 means the j-th operation happens in device i;*/
 void set_device_working_map(){
-        for(int i=1;i<=devices.size();i++){
-                for(int j=1;j<=operations.size();j++){
+        for(int i=0;i<devices.size();i++){
+                for(int j=0;j<operations.size();j++){
                         device_map[i][j]=make_shared<variable>();
                         device_map[i][j]->id=vvar.size();
                         device_map[i][j]->type=0;
@@ -78,11 +78,11 @@ void set_device_working_map(){
 
 /*each operation can only be executed in one device;*/
 void set_constraint_group1(){
-        for(int j=1;j<=operations.size();j++){
+        for(int j=0;j<operations.size();j++){
                 sum_constr++;
                 constr_sense_map[sum_constr]=0;
                 constr_rightside_map[sum_constr]=1;
-                for(int i=1;i<=device_map.size();i++){
+                for(int i=0;i<device_map.size();i++){
                         constr_variable_map[sum_constr].insert(device_map[i][j]);
                         device_map[i][j]->constr_involved.insert(sum_constr);
                         device_map[i][j]->constr_coeff[sum_constr]=1;
@@ -90,7 +90,7 @@ void set_constraint_group1(){
         }
 }
 void set_device_workingtime(){
-        for(int i=1;i<=devices.size();i++){
+        for(int i=0;i<devices.size();i++){
                 device_working[i]=make_shared<variable>();
                 device_working[i]->id=vvar.size();
                 device_working[i]->type=1;
@@ -102,17 +102,17 @@ void set_device_workingtime(){
 
 /*device working time equal the sum of d[i][j]*operation->time*/
 void set_constraint_group2(){
-        for(int i=1;i<=devices.size();i++){
+        for(int i=0;i<devices.size();i++){
                 sum_constr++;
                 constr_sense_map[sum_constr]=0;
                 constr_rightside_map[sum_constr]=0;
-                for(int j=1;j<=operations.size();j++){
-                        constr_variable_map[sum_constr].insert(device_working[j]);
-                        device_working[j]->constr_involved.insert(sum_constr);
-                        device_working[j]->constr_coeff[sum_constr]=-1;
+                for(int j=0;j<operations.size();j++){
+                        constr_variable_map[sum_constr].insert(device_working[i]);
+                        device_working[i]->constr_involved.insert(sum_constr);
+                        device_working[i]->constr_coeff[sum_constr]=-1;
                         constr_variable_map[sum_constr].insert(device_map[i][j]);
                         device_map[i][j]->constr_involved.insert(sum_constr);
-                        device_map[i][j]->constr_coeff[sum_constr]=operations[j-1]->time();
+                        device_map[i][j]->constr_coeff[sum_constr]=operations[j]->time();
                 }
         }
 }
@@ -130,7 +130,7 @@ void set_final_time(){
 
 /*Finaltime>=every device working time*/
 void set_constraint_group3(){
-        for(int i=1;i<=devices.size();i++){
+        for(int i=0;i<devices.size();i++){
                 sum_constr++;
                 constr_sense_map[sum_constr]=1;
                 constr_rightside_map[sum_constr]=0;
@@ -163,7 +163,7 @@ void funcGurobi(double time, double absgap, int idisplay)
                 convi<<i;
                 mapvs[vvar[i]]="x"+convi.str();
         }
-//	vector<shared_ptr<GRBVar>> x;
+//	shared_ptr<GRBVar> x(new GRBVar(vvar.size()+1));
 	GRBVar *x=new GRBVar [vvar.size()+1];
 //	auto x=make_shared<GRBVar>(vvar.size()+1);	
         for(int i=0;i<vvar.size();i++)
@@ -202,13 +202,15 @@ void funcGurobi(double time, double absgap, int idisplay)
                 }
                 else
                 {
-			for(auto setit:constr_variable_map[i]){
+			for(auto setit:constr_variable_map[i])
+			{
 //                        for(set<variable*>::iterator setit=constr_variable_map[i].begin();setit!=constr_variable_map[i].end();setit++)
                                 expr+=x[setit->id]*(setit->constr_coeff[i]);
                 //      model.setObjective(expr,GRB_MAXIMIZE);
                         	model.setObjective(expr,GRB_MINIMIZE);
-                }
-        }
+                	}
+        	}
+	}
 //      mycallback cb(time, absgap);
 //      model.setCallback(&cb);
         model.optimize();
@@ -234,7 +236,7 @@ void funcGurobi(double time, double absgap, int idisplay)
                         cout<<"new type"<<endl;
         }
 }
-}
+
 
 int main(int argc, char* argv[])
 {
